@@ -11,20 +11,26 @@ import SendbirdAIAgentMessenger
 class AppDelegate: UIResponder, UIApplicationDelegate {
     // MARK: - Properties
     var window: UIWindow?
+    #if INTERNAL_TEST
+    private var mockTestHost: AIAgentMockTestHost?
+    #endif
 
     // MARK: - Lifecycle
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        #if INTERNAL_TEST
+        setupInternalTest()
+        if installMockTestHostIfNeeded() {
+            return true
+        }
+        #endif
+
         let mainVC = ViewController()
         let navigationController = UINavigationController(rootViewController: mainVC)
         self.window?.rootViewController = navigationController
         self.window?.makeKeyAndVisible()
-
-        #if INTERNAL_TEST
-        setupInternalTest()
-        #endif
 
         setupPushNotifications()
         initializeAIAgentSDK()
@@ -45,6 +51,26 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
         #endif
     }
+
+    #if INTERNAL_TEST
+    private func installMockTestHostIfNeeded() -> Bool {
+        do {
+            guard let configuration = try AIAgentMockLaunchConfiguration.load() else {
+                return false
+            }
+
+            let targetWindow = self.window ?? UIWindow(frame: UIScreen.main.bounds)
+            self.window = targetWindow
+
+            let mockTestHost = AIAgentMockTestHost(configuration: configuration)
+            self.mockTestHost = mockTestHost
+            mockTestHost.install(on: targetWindow)
+            return true
+        } catch {
+            fatalError("[AppDelegate] Invalid AI Agent mock launch configuration: \(error.localizedDescription)")
+        }
+    }
+    #endif
 
     private func setupPushNotifications() {
         // Note: This may trigger 800100 error during initialization
