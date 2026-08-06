@@ -12,7 +12,17 @@ import SendbirdChatSDK
 // MARK: - Session Delegate
 
 // TODO: This session handler is for example code only, and should be updated via the service's API.
-extension AIAgentStarterKit: SessionDelegate {
+extension AIAgentStarterKit: AIAgentSessionDelegate {
+    /// Called when a CPA (external auth) token expires during an AI agent tool call.
+    /// `data.cpaKey` identifies which CPA expired. Host apps should refresh that
+    /// CPA's auth code and resubmit it via
+    /// `AIAgentMessenger.submitCPAAuthorizationCodes(aiAgentId:codes:...)`.
+    func externalAuthTokenDidExpire(_ data: ExternalAuthTokenExpiredData) {
+        debugPrint("[SessionDelegate] externalAuthTokenDidExpire - cpaKey: \(data.cpaKey ?? "nil"), channel: \(data.channelURL)")
+    }
+}
+
+extension AIAgentStarterKit {
     /// Called when a session token is required for authentication.
     /// - Parameters:
     ///   - successCompletion: Closure to call with the session token on success.
