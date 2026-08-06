@@ -60,7 +60,7 @@ extension AIAgentStarterKit {
             with: .anonymous()
         )
     }
-    
+
     /// Connects the AIAgentMessenger.
     ///
     /// This function is currently not needed as connection is handled internally.
@@ -74,7 +74,6 @@ extension AIAgentStarterKit {
                     params.countryCode = self.contextObjects.countryCode
                     params.language = self.contextObjects.language
                 }
-                
             ) { result in
                 switch result {
                 case .success:
@@ -84,7 +83,6 @@ extension AIAgentStarterKit {
                 }
             }
         }
-        
     }
     
     /// Disconnects the AIAgentMessenger.
