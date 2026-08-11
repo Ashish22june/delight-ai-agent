@@ -28,6 +28,11 @@ internal val userUs3 = ManualUserInfo(
 )
 // endregion
 
+internal val userPreprod = ManualUserInfo(
+    userId = "",
+    authToken = "",
+)
+
 internal val userNo1 = ManualUserInfo(
     userId = "",
     authToken = "",

@@ -182,6 +182,31 @@ launcher.onMessengerLauncherClickListener = OnLauncherClickListener { view ->
 }
 ```
 
+### Setting the context of a specific conversation
+
+`openConversation()` takes an optional `params` argument, so you can apply launcher settings — including `context` — to the conversation you're opening.
+
+```kotlin
+// Open a specific conversation and set or update its context.
+launcher.openConversation(
+    channelUrl = "sendbird_group_channel_12345",
+    params = LauncherSettingsParams(
+        language = "en-US",
+        country = "US",
+        context = mapOf("customer_tier" to "premium")
+    )
+)
+```
+
+How the two arguments combine:
+
+| `channelUrl` | `params` | Result |
+| ------------ | -------- | ------ |
+| Specified    | Specified | The co~~~~~~~~nversation is opened fresh with the given settings, so a new or updated context takes effect even when the same conversation is reopened. |
+| Specified    | `null`    | The conversation is opened with the launcher's current settings, but the context is sent empty so that the channel's stored context isn't overwritten. |
+| `null`       | Specified | The last opened or default conversation is reopened as is. **The new context isn't applied.** To set a context, target the conversation explicitly with `channelUrl`. |
+| `null`       | `null`    | The last opened or default conversation is reopened as is. |
+
 ### More configuration options
 
 This section describes how to configure the parameters and enums that control launcher behavior and appearance.
@@ -198,6 +223,7 @@ The following table lists the configuration options in `LauncherSettingsParams`,
 | `country`                        | `String?`               | Sets the user's country code in ISO 3166 format.                                                                                                  |
 | `context`                        | `Map<String, String>`   | Contains additional metadata on the user for more personalized support by AI agent. (Default: empty)                                             |
 | `shouldUseCurrentActiveChannelUrl` | `Boolean`             | Determines whether to use a known channel URL when opening a conversation. (Default: `true`)                                                      |
+| `unreadMessageCountParams`       | `UnreadMessageCountParams?` | Determines the scope of the unread message count shown by the launcher unread badge, such as the AI agent IDs, conversation statuses, and whether Desk channels are included. When `null`, the badge is scoped to the launcher's AI agent ID. (Default: `null`) |
 
 ```kotlin
 val params = LauncherSettingsParams(
@@ -318,6 +344,6 @@ val customMargin = LauncherMargin(
 | -------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------- |
 | `attach`             | None                       | Attaches the `MessengerLauncher` to the current `FragmentActivity`. This must be called from the main thread, in the activity's `onCreate()`.                 | `Unit`      |
 | `detach`             | None                       | Removes the launcher from the current activity. This can be called multiple times.                                        | `Unit`      |
-| `openConversation`   | `channelUrl: String? = null` | Opens a specific conversation with its channel URL. If `channelUrl` is null, it opens the default channel.          | `Unit`      |
+| `openConversation`   | `channelUrl: String? = null`, `params: LauncherSettingsParams? = null` | Opens a specific conversation with its channel URL. If `channelUrl` is null, the last opened or default conversation is reopened as is. See [Setting the context of a specific conversation](#setting-the-context-of-a-specific-conversation) for how `params` behaves. | `Unit`      |
 | `openConversationList` | None                     | Opens the conversation list view, showing all user conversations.                                                   | `Unit`      |
 | `closeMessenger`     | None                       | Closes any open messenger screens and returns to the previous screen.                                               | `Unit`      |

@@ -1,5 +1,50 @@
 # Changelog
 
+## v1.18.0 (Aug 11, 2026) with Chat SDK `v4.36.4`
+
+### Features
+
+#### Customer-provided authentication (CPA) OAuth2 authorization codes
+
+- Added support for submitting CPA OAuth2 authorization codes so the AI agent can call third-party APIs on the end user's behalf. Codes are exchanged and cached per user and shared across every channel that user has with the bot, so no channel is required. Per-item failures do not fail their peers; inspect each result's status.
+  - Added `suspend fun awaitSubmitCustomerProvidedAuthCodes(String, List<CpaAuthorizationCode>)` in `AIAgentMessenger`. Usable any time after `authenticate()`, both pre- and mid-conversation.
+  - Added `CpaAuthorizationCode` model describing a single authorization code to submit
+      - `key: String`, `code: String`, `redirectUri: String?`
+  - Added `CpaAuthorizationResult` model carrying the per-item outcome, returned in request order
+      - `key: String`, `status: CpaAuthorizationStatus`, `errorCode: CpaAuthorizationErrorCode?`, `errorMessage: String?`
+  - Added `CpaAuthorizationStatus` enum with `OK` and `ERROR`
+  - Added `CpaAuthorizationErrorCode` enum with `UNKNOWN_CPA_KEY`, `CPA_NOT_OAUTH2`, `INVALID_GRANT`, `PROVIDER_ERROR`, `PROVIDER_UNREACHABLE`, `EXCHANGE_FAILED`, `INTERNAL_ERROR`, and `UNKNOWN`
+  - Added `cpaAuthorizationCodes: List<CpaAuthorizationCode>?` property in `MessengerParams` (defaults to `null`) and in `ConversationSettingsParams`, so codes can be submitted during authentication before a conversation starts
+  - Added `cpaKey: String` property in `ExternalAuthTokenExpiredData`, identifying which CPA's token expired. Echo it back as `CpaAuthorizationCode.key` when submitting a fresh code.
+- Added `FAIL` value to `ChallengeAction`, to report that a challenge could not be completed (for example after the user exhausts the allowed verification attempts). `SendChallengeActionParams.data` may be omitted for this action.
+- Added `profileSkeletonColor: ColorRef` property in `ConversationHeaderTheme`. The conversation header avatar is now filled with this color while the profile image loads, and switches to the loaded image or the fallback icon once the request resolves.
+```kotlin
+// Customize the header profile skeleton color for the light theme
+AIAgentThemeProviders.light = ThemeProvider {
+    object : MessengerTheme by LightTheme() {
+        override val conversation: ConversationTheme = LightTheme.ConversationThemeImpl(
+            header = LightTheme.ConversationHeaderThemeImpl(
+                profileSkeletonColor = ColorRef(Color.WHITE),
+            ),
+        )
+    }
+}
+```
+
+### Improvements
+
+- Stopped rendering server-filled file names as a message caption for multiple-file messages. When such a message is sent without a caption the server fills its text with the file name(s); that text is now hidden in the message list, in the conversation list preview, and in the accessibility label, while a real caption sent with the files is still shown.
+- Reduced message list flicker when the typing indicator is replaced by the incoming agent message: the transient "typing removed, message not yet arrived" frame is now withheld briefly so the list moves straight from the typing indicator to the message. Streaming updates are never withheld, and a genuine typing stop is delayed by at most one debounce window.
+- Emitted real JVM default methods for messenger interface members that carry a default implementation (such as `MessengerParams.knownChannelUrl` and `MessengerParams.cpaAuthorizationCodes`), so an application implementing these interfaces against an earlier release no longer hits `AbstractMethodError` when a newly added member is read. Consumers compiled against earlier releases stay binary compatible.
+- Deprecated `ConversationHeaderTheme.profileIconTint`. The header profile icon tint is now derived from the profile background color, so setting it has no effect.
+
+### Bug Fixes
+
+- Fixed a crash and an immediate screen close when the messenger was restored after process death with launch parameters missing from the restored fragment arguments.
+    - `MessengerActivity` now back-fills the dropped launch parameters from its intent extras for every restored messenger fragment, so a `conversation list → conversation` back stack is repaired end to end.
+    - `ConversationFragment.validateArguments()` and `ConversationListFragment.validateArguments()` now read the AI-Agent id from the argument `Bundle` instead of the throwing property, so an invalid restore returns `false` instead of crashing.
+    - `BaseModuleFragment` now stops creating the view model and module when argument validation fails, and guards the remaining lifecycle callbacks against the uninitialized instances.
+
 ## v1.17.1 (Jul 15, 2026) with Chat SDK `v4.36.3`
 
 ### Features

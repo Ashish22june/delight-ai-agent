@@ -13,6 +13,7 @@ import com.sendbird.sdk.aiagent.sample.consts.Region
 import com.sendbird.sdk.aiagent.sample.databinding.SampleLayoutSelectAppInfoBinding
 import com.sendbird.sdk.aiagent.sample.model.SampleAppInfo
 import com.sendbird.sdk.aiagent.sample.model.no1
+import com.sendbird.sdk.aiagent.sample.model.preprod
 import com.sendbird.sdk.aiagent.sample.model.no2
 import com.sendbird.sdk.aiagent.sample.model.no3
 import com.sendbird.sdk.aiagent.sample.model.no4
@@ -91,6 +92,7 @@ class SelectAppInfoActivity : BaseSampleActivity() {
     private fun getDefaultAppInfo(region: Region): SampleAppInfo {
         return when (region) {
             Region.PRODUCTION -> us3
+            Region.PREPROD -> preprod
             Region.NO1 -> no1
             Region.NO2 -> no2
             Region.NO3 -> no3
