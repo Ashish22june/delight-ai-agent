@@ -34,6 +34,12 @@ internal val us3 = SampleAppInfo(
 )
 // endregion
 
+internal val preprod = SampleAppInfo(
+    region = Region.PREPROD,
+    appId = "",
+    aiAgentId = ""
+)
+
 internal val no1 = SampleAppInfo(
     region = Region.NO1,
     appId = "",

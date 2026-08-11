@@ -166,8 +166,11 @@ val createParams = ConversationCreateParams(
     )
 )
 
-val channelUrl = AIAgentMessenger.awaitCreateConversation(createParams)
-// Use the returned channel URL to open the conversation
+// awaitCreateConversation() is a suspend function, so call it from a coroutine scope.
+scope.launch {
+    val channelUrl = AIAgentMessenger.awaitCreateConversation(createParams)
+    // Use the returned channel URL to open the conversation
+}
 ```
 
 ### Opening a specific conversation with channel URL
@@ -213,25 +216,31 @@ val params = ConversationCreateParams(
     )
 )
 
-try {
-    val channelUrl = AIAgentMessenger.awaitCreateConversation(params)
-    // Use the returned channel URL to launch the conversation
+// awaitCreateConversation() is a suspend function, so call it from a coroutine scope.
+// Inside launch {}, `this` is the CoroutineScope, so keep a reference to the activity.
+val activity = this
 
-    // Option 1: Launch via MessengerLauncher
-    messengerLauncher.openConversation(channelUrl = channelUrl)
+scope.launch {
+    try {
+        val channelUrl = AIAgentMessenger.awaitCreateConversation(params)
+        // Use the returned channel URL to launch the conversation
 
-    // Option 2: Launch via MessengerActivity
-    val intent = MessengerActivity.newIntentForConversation(
-        context = this,
-        aiAgentId = "YOUR_AI_AGENT_ID",
-        conversationChannelUrl = channelUrl
-    )
-    startActivity(intent)
+        // Option 1: Launch via MessengerLauncher
+        messengerLauncher.openConversation(channelUrl = channelUrl)
 
-    Log.d("Conversation", "Successfully created conversation: $channelUrl")
-} catch (e: Exception) {
-    // Handle error case
-    Log.e("Conversation", "Failed to create conversation: ${e.message}")
+        // Option 2: Launch via MessengerActivity
+        val intent = MessengerActivity.newIntentForConversation(
+            context = activity,
+            aiAgentId = "YOUR_AI_AGENT_ID",
+            conversationChannelUrl = channelUrl
+        )
+        startActivity(intent)
+
+        Log.d("Conversation", "Successfully created conversation: $channelUrl")
+    } catch (e: SendbirdException) {
+        // Handle error case
+        Log.e("Conversation", "Failed to create conversation: ${e.message}")
+    }
 }
 ```
 
@@ -261,6 +270,8 @@ The following table lists the configuration options in `ConversationSettingsPara
 | `country`                         | String?             | null        | Country code following ISO 3166 format.               |
 | `context`                         | Map<String, String> | Empty map     | Meta context map for additional AI agent information. |
 | `shouldUseCurrentActiveChannelUrl` | Boolean            | true        | Whether to use known channel URL if available.        |
+| `knownChannelUrl`                 | String?             | null        | Channel URL used as the known channel for this request instead of the cached active channel URL. This keeps a specific conversation's context from overwriting the cached active conversation. Only applied when `shouldUseCurrentActiveChannelUrl` is true. |
+| `cpaAuthorizationCodes`           | `List<CpaAuthorizationCode>?` | null | OAuth2 authorization codes submitted during authentication, before the conversation starts. Each item holds `key`, `code`, and an optional `redirectUri`. |
 
 ### ConversationCreateHandler
 
@@ -276,7 +287,7 @@ The following table lists the core conversation management methods in `AIAgentMe
 
 | Method                     | Parameters                          | Return Type | Description                                          |
 | -------------------------- | ----------------------------------- | ----------- | ---------------------------------------------------- |
-| `awaitCreateConversation`  | params: ConversationCreateParams    | String      | Creates a new conversation with specified parameters. Returns channel URL. |
+| `awaitCreateConversation`  | params: ConversationCreateParams    | String      | Creates a new conversation with specified parameters. Returns channel URL. This is a `suspend` function, so it must be called from a coroutine scope, and it throws `SendbirdException` on failure. |
 
 ### MessengerActivity Methods
 

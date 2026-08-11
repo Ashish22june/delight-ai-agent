@@ -6,6 +6,7 @@ import com.sendbird.sdk.aiagent.sample.consts.Region
 
 fun Region.apiHost(): String? {
     return when (this) {
+        Region.PREPROD -> "https://api-preprod.svc.delightstg.ai"
         Region.NO1 -> "https://api-no1.sendbirdtest.com"
         Region.NO2 -> "https://api-no2.sendbirdtest.com"
         Region.NO3 -> "https://api-no3.sendbirdtest.com"
@@ -19,6 +20,7 @@ fun Region.apiHost(): String? {
 
 fun Region.wsHost(): String? {
     return when (this) {
+        Region.PREPROD -> "wss://ws-preprod.svc.delightstg.ai"
         Region.NO1 -> "wss://ws-no1.sendbirdtest.com"
         Region.NO2 -> "wss://ws-no2.sendbirdtest.com"
         Region.NO3 -> "wss://ws-no3.sendbirdtest.com"
@@ -34,6 +36,7 @@ fun String.toRegion(context: Context): Region {
     context.let {
         return when (this) {
             context.getString(R.string.sample_region_production) -> Region.PRODUCTION
+            context.getString(R.string.sample_region_preprod) -> Region.PREPROD
             context.getString(R.string.sample_region_no1) -> Region.NO1
             context.getString(R.string.sample_region_no2) -> Region.NO2
             context.getString(R.string.sample_region_no3) -> Region.NO3

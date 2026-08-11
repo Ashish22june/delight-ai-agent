@@ -23,6 +23,7 @@
     <string name="sample_text_pinned_channels">Canales fijados</string>
     <string name="sample_text_powered_by">Powered by Delight.ai</string>
     <string name="sample_region_production">PRODUCTION</string>
+    <string name="sample_region_preprod">PREPROD</string>
     <string name="sample_region_no1">NO1</string>
     <string name="sample_region_no2">NO2</string>
     <string name="sample_region_no3">NO3</string>

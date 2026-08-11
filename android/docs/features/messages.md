@@ -369,12 +369,12 @@ try {
 
 #### Challenge
 
-Challenge enables in-chat secure form flows such as identity verification. When the AI agent needs the user to complete a verification step, the Delight AI agent server attaches challenge data to a message and the client renders its own form. After the user submits or cancels, the client reports the result to the server through a dedicated action API. The SDK does not render any default challenge UI.
+Challenge enables in-chat secure form flows such as identity verification. When the AI agent needs the user to complete a verification step, the Delight AI agent server attaches challenge data to a message and the client renders its own form. After the user submits, cancels, or exhausts the allowed verification attempts, the client reports the result to the server through a dedicated action API. The SDK does not render any default challenge UI.
 
 ##### Core features
 
 - **Data delivery**: Challenge arrives as a `challenge` object in the message's `extendedMessagePayload`. The client handles UI rendering.
-- **Action API**: Submit and cancel results are reported with `AIAgentMessenger.awaitSendChallengeAction`. The server verifies the result and updates the challenge status.
+- **Action API**: Submit, cancel, and fail results are reported with `AIAgentMessenger.awaitSendChallengeAction`. The server verifies the result and updates the challenge status.
 - **Status updates**: The server updates the challenge `status` on the same message (for example `pending` → `succeeded`). The SDK re-invokes your handler so you can reflect the new state.
 
 ##### Data structure
@@ -491,7 +491,7 @@ val challenge = message.extendedMessagePayload["challenge"]
 
 **4. Send the action result**
 
-When the user submits or cancels the form, report the result with `AIAgentMessenger.awaitSendChallengeAction`. `data` is required for `ChallengeAction.SUBMIT` and may be omitted for `ChallengeAction.CANCEL`. The call suspends until the server acknowledges and returns no payload; the resulting status arrives as a later update to the message.
+When the user submits or cancels the form, report the result with `AIAgentMessenger.awaitSendChallengeAction`. Use `ChallengeAction.FAIL` to report that the challenge could not be completed — for example, after the user exhausts the allowed verification attempts. `data` is required for `ChallengeAction.SUBMIT` and may be omitted for `ChallengeAction.CANCEL` and `ChallengeAction.FAIL`. The call suspends until the server acknowledges and returns no payload; the resulting status arrives as a later update to the message.
 
 `data` is an arbitrary `Map<String, Any>` whose contents are defined by your verification flow and the server — the SDK does not interpret it. The `authorization_code` key below is only an example; use whatever fields your server expects for the given challenge.
 
@@ -522,6 +522,18 @@ scope.launch {
             key = challenge.key,
             requestId = challenge.requestId,
             action = ChallengeAction.CANCEL
+        )
+    )
+}
+
+// On fail, e.g. after the allowed verification attempts are exhausted (no data)
+scope.launch {
+    AIAgentMessenger.awaitSendChallengeAction(
+        SendChallengeActionParams(
+            channelUrl = message.channelUrl,
+            key = challenge.key,
+            requestId = challenge.requestId,
+            action = ChallengeAction.FAIL
         )
     )
 }
@@ -618,6 +630,7 @@ The following table lists the configuration options available in `AIAgentMesseng
 | `scrollMode` | ScrollMode | Scroll behavior of the message list. Acceptable values are `AUTO` for normal scroll and `FIX` to keep user message fixed at the top during AI agent responses. (Default: `ScrollMode.AUTO`) |
 | `shouldShowMessageFooterView` | Boolean | Determines whether the **Start new conversation** view is shown when conversation has ended. (Default: `true`) |
 | `enableNewMessageIndicator` | Boolean | Determines whether the new message indicator is enabled. (Default: `true`) |
+| `deferredMarkdownElements` | `Set<DeferredMarkdownElement>` | Determines which markdown elements are hidden while their token is still incomplete during AI agent message streaming, so half-written markdown isn't briefly exposed. Acceptable values are `DeferredMarkdownElement.IMAGE` and `DeferredMarkdownElement.LINK`. Elements that aren't in the set render as they arrive. (Default: `emptySet()`) |
 
 ```kotlin
 // Configure conversation list settings
@@ -626,6 +639,10 @@ AIAgentMessenger.config.conversation.list.shouldShowSenderProfile = false
 AIAgentMessenger.config.conversation.list.scrollMode = ScrollMode.FIX
 AIAgentMessenger.config.conversation.list.shouldShowMessageFooterView = false
 AIAgentMessenger.config.conversation.list.enableNewMessageIndicator = false
+AIAgentMessenger.config.conversation.list.deferredMarkdownElements = setOf(
+    DeferredMarkdownElement.IMAGE,
+    DeferredMarkdownElement.LINK
+)
 ```
 
 #### ConversationConfig.Input
