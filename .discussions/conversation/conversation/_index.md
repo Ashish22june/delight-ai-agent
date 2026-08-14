@@ -1,6 +1,6 @@
 ### Summary
 
-_No response_
+This guide explains how to replace the default suggested replies UI in the conversation message with your own layout, while keeping the rest of the message UI intact.
 
 ### Guide & Snippet
 
