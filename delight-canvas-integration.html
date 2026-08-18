@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CU Ava 2.0 - Delight Messenger (Canvas)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .instructions {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .instructions h1 {
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 28px;
+        }
+
+        .instructions p {
+            color: #666;
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .instructions .subtitle {
+            color: #999;
+            font-size: 14px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+
+        #auth-status {
+            background: white;
+            border-radius: 8px;
+            padding: 16px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+        }
+
+        #auth-status.authenticated {
+            border-left: 4px solid #4CAF50;
+            background: #f1f8f4;
+        }
+
+        #auth-status.authenticated::before {
+            content: "✓";
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        #auth-status.anonymous {
+            border-left: 4px solid #FF9800;
+            background: #fff3f1;
+        }
+
+        #auth-status.anonymous::before {
+            content: "ℹ";
+            color: #FF9800;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        #auth-status.error {
+            border-left: 4px solid #f44336;
+            background: #ffebee;
+        }
+
+        #auth-status.error::before {
+            content: "✕";
+            color: #f44336;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        #auth-status span {
+            color: #333;
+        }
+
+        #auth-status.anonymous span {
+            color: #FF6F00;
+        }
+
+        #auth-status.authenticated span {
+            color: #2e7d32;
+        }
+
+        #auth-status.error span {
+            color: #c62828;
+        }
+
+        #delight-widget-container {
+            min-height: 400px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 16px;
+            border-radius: 4px;
+            margin-top: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Canvas Team Instructions -->
+        <div class="instructions">
+            <h1>CU Ava 2.0 - Delight Messenger Integration</h1>
+            <p><strong>What This Does:</strong> Integrates Delight AI messenger into Canvas for students and guests.</p>
+            <p><strong>Authentication Paths:</strong></p>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li><strong>Authenticated Students:</strong> Detects Canvas student ID and session token → Full access to all features</li>
+                <li><strong>Anonymous Guests:</strong> No auth data provided → Limited features (public content, FAQs, support only)</li>
+            </ul>
+            <p style="margin-top: 16px;"><strong>For Canvas Team:</strong> Provide window.CANVAS_STUDENT_ID and window.DELIGHT_SESSION_TOKEN for authenticated path. If neither is provided, anonymous session is created automatically.</p>
+            <p class="subtitle">This file auto-detects user type and initializes Delight appropriately. No configuration needed.</p>
+        </div>
+
+        <!-- Auth Status Display -->
+        <div id="auth-status" class="loading">
+            <div class="spinner"></div>
+            <span>Initializing Delight...</span>
+        </div>
+
+        <!-- Delight Messenger Container -->
+        <div id="delight-widget-container"></div>
+    </div>
+
+    <script type="module">
+        // ===== CONFIGURATION =====
+        // Update these values from your Delight dashboard
+        const CONFIG = {
+            appId: 'YOUR_APP_ID',           // Replace with actual app ID
+            aiAgentId: 'YOUR_AGENT_ID',     // Replace with actual agent ID
+            autoInitialize: true            // Auto-init on page load
+        };
+
+        // ===== FEATURE CONFIGURATION =====
+        // Define feature sets for each user type
+        const FEATURE_CONFIG = {
+            student: {
+                privateData: true,
+                advisor: true,
+                enrollment: true,
+                financial: true,
+                messages: true,
+                allFeatures: true
+            },
+            anonymous: {
+                privateData: false,
+                advisor: false,
+                enrollment: false,
+                financial: false,
+                messages: true,
+                publicContent: true,
+                faq: true
+            }
+        };
+
+        // ===== STATE =====
+        let messengerInstance = null;
+        let currentUserType = null;
+        let sessionToken = null;
+
+        // ===== AUTHENTICATION DETECTION =====
+        function detectUserType() {
+            // Check for Canvas student authentication
+            const canvasStudentId = window.CANVAS_STUDENT_ID;
+            const delightSessionToken = window.DELIGHT_SESSION_TOKEN;
+
+            if (canvasStudentId && delightSessionToken) {
+                sessionToken = delightSessionToken;
+                return 'student';
+            }
+
+            return 'anonymous';
+        }
+
+        // ===== ANONYMOUS SESSION CREATION =====
+        async function createAnonymousSession() {
+            try {
+                // Call backend to create anonymous session
+                const response = await fetch('/api/delight/users/anonymous', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionId: generateUUID(),
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.sessionToken || data.token;
+            } catch (error) {
+                console.error('Failed to create anonymous session:', error);
+                // Return a local token as fallback
+                return 'anonymous-' + generateUUID();
+            }
+        }
+
+        // ===== UTILITY FUNCTIONS =====
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function updateAuthStatus(userType, error = null) {
+            const authStatus = document.getElementById('auth-status');
+
+            if (error) {
+                authStatus.className = 'error';
+                authStatus.innerHTML = `<span>Error: ${error}</span>`;
+                return;
+            }
+
+            if (userType === 'student') {
+                authStatus.className = 'authenticated';
+                authStatus.innerHTML = `<span>Logged in as student. Full access to all features.</span>`;
+            } else if (userType === 'anonymous') {
+                authStatus.className = 'anonymous';
+                authStatus.innerHTML = `<span>Browsing as guest. Limited features available. <a href="#login" style="color: #FF6F00; text-decoration: underline;">Log in for full access.</a></span>`;
+            }
+        }
+
+        // ===== MESSENGER INITIALIZATION =====
+        async function initializeDelight() {
+            try {
+                console.log('Starting Delight initialization...');
+
+                // Step 1: Detect user type
+                currentUserType = detectUserType();
+                console.log(`User type detected: ${currentUserType}`);
+
+                // Step 2: Get or create session token
+                if (currentUserType === 'anonymous') {
+                    console.log('Creating anonymous session...');
+                    sessionToken = await createAnonymousSession();
+                }
+
+                // Step 3: Load messenger library
+                const { loadMessenger } = await import('https://aiagent.delight.ai/orgs/default/index.js');
+                messengerInstance = await loadMessenger();
+                console.log('Messenger library loaded');
+
+                // Step 4: Prepare initialization config
+                const initConfig = {
+                    appId: CONFIG.appId,
+                    aiAgentId: CONFIG.aiAgentId
+                };
+
+                // Step 5: Add session info based on user type
+                if (currentUserType === 'student') {
+                    const canvasStudentId = window.CANVAS_STUDENT_ID;
+                    initConfig.userSessionInfo = new messengerInstance.ManualSessionInfo({
+                        userId: canvasStudentId,
+                        authToken: sessionToken,
+                        sessionHandler: {
+                            onSessionTokenRequired: async (resolve) => {
+                                console.log('Token refresh requested');
+                                // Get fresh token from Canvas/backend
+                                const freshToken = window.DELIGHT_SESSION_TOKEN || sessionToken;
+                                resolve(freshToken);
+                            },
+                            onSessionClosed: () => {
+                                console.log('Student session closed');
+                            },
+                            onSessionError: (error) => {
+                                console.error('Student session error:', error);
+                            },
+                            onSessionRefreshed: () => {
+                                console.log('Student session refreshed');
+                            }
+                        }
+                    });
+
+                    // Add feature context for students
+                    initConfig.context = {
+                        userType: 'student',
+                        canvasId: canvasStudentId,
+                        features: Object.keys(FEATURE_CONFIG.student).filter(k => FEATURE_CONFIG.student[k])
+                    };
+                } else {
+                    // Anonymous session
+                    initConfig.userSessionInfo = new messengerInstance.AnonymousSessionInfo();
+
+                    // Add feature context for anonymous users
+                    initConfig.context = {
+                        userType: 'anonymous',
+                        features: Object.keys(FEATURE_CONFIG.anonymous).filter(k => FEATURE_CONFIG.anonymous[k])
+                    };
+                }
+
+                // Step 6: Initialize messenger
+                console.log('Initializing messenger with config:', { appId: initConfig.appId, aiAgentId: initConfig.aiAgentId, userType: currentUserType });
+                await messengerInstance.initialize(initConfig);
+
+                // Step 7: Update UI
+                updateAuthStatus(currentUserType);
+                console.log(`Delight initialized successfully for ${currentUserType} user`);
+
+            } catch (error) {
+                console.error('Failed to initialize Delight:', error);
+                updateAuthStatus(null, error.message || 'Failed to initialize messenger');
+
+                // Show error details
+                const container = document.getElementById('delight-widget-container');
+                container.innerHTML = `
+                    <div class="error-message">
+                        <strong>Initialization Error:</strong><br>
+                        ${error.message}<br><br>
+                        <small>Check console for more details. Ensure APP_ID and AGENT_ID are configured correctly.</small>
+                    </div>
+                `;
+            }
+        }
+
+        // ===== LIFECYCLE =====
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                if (CONFIG.autoInitialize) {
+                    initializeDelight();
+                }
+            });
+        } else {
+            if (CONFIG.autoInitialize) {
+                initializeDelight();
+            }
+        }
+
+        // Expose functions globally for Canvas team if needed
+        window.DelightIntegration = {
+            initialize: initializeDelight,
+            getMessenger: () => messengerInstance,
+            getUserType: () => currentUserType,
+            getFeatures: () => currentUserType ? FEATURE_CONFIG[currentUserType] : null,
+            detectUserType: detectUserType
+        };
+
+        console.log('Delight Canvas Integration loaded. Call window.DelightIntegration.initialize() to start.');
+    </script>
+</body>
+</html>
