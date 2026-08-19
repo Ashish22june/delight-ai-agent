@@ -339,6 +339,7 @@
                     initConfig.context = {
                         userType: 'student',
                         canvasId: canvasStudentId,
+                        platformId: 'canvas',
                         features: Object.keys(FEATURE_CONFIG.student).filter(k => FEATURE_CONFIG.student[k])
                     };
                 } else {
@@ -348,6 +349,7 @@
                     // Add feature context for anonymous users
                     initConfig.context = {
                         userType: 'anonymous',
+                        platformId: 'canvas',
                         features: Object.keys(FEATURE_CONFIG.anonymous).filter(k => FEATURE_CONFIG.anonymous[k])
                     };
                 }
