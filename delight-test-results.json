@@ -1,0 +1,55 @@
+{
+  "timestamp": "2026-08-19T13:36:36.744Z",
+  "tests": [
+    {
+      "name": "Configuration Validation",
+      "passed": true,
+      "details": "All credentials valid",
+      "timestamp": "2026-08-19T13:36:36.748Z"
+    },
+    {
+      "name": "API Connectivity",
+      "passed": false,
+      "details": "Status: 404, Success: undefined",
+      "timestamp": "2026-08-19T13:36:37.739Z"
+    },
+    {
+      "name": "User Session Creation",
+      "passed": false,
+      "details": "No session data from previous test",
+      "timestamp": "2026-08-19T13:36:37.739Z"
+    },
+    {
+      "name": "Context Schema",
+      "passed": true,
+      "details": "All fields present: true, platformId set: true",
+      "timestamp": "2026-08-19T13:36:37.739Z"
+    },
+    {
+      "name": "SDK Initialization",
+      "passed": false,
+      "details": "No session data available",
+      "timestamp": "2026-08-19T13:36:37.739Z"
+    },
+    {
+      "name": "Launcher UI Schema",
+      "passed": "AI Assistant",
+      "details": "Launcher ID: delightLauncher, Class: ic-app-header__menu-list-link, Text: AI Assistant",
+      "timestamp": "2026-08-19T13:36:37.739Z"
+    },
+    {
+      "name": "Error Handling",
+      "passed": true,
+      "details": "Error handling implemented at all critical points",
+      "timestamp": "2026-08-19T13:36:37.739Z"
+    },
+    {
+      "name": "Analytics Platform ID",
+      "passed": true,
+      "details": "Platform ID set to 'canvas' for analytics filtering",
+      "timestamp": "2026-08-19T13:36:37.740Z"
+    }
+  ],
+  "passed": 5,
+  "failed": 3
+}

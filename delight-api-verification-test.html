@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delight API Verification Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-section h2 {
+            color: #667eea;
+            font-size: 16px;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .log {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log.success {
+            border-left-color: #4CAF50;
+            background: #f1f8f4;
+        }
+
+        .log.error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+
+        .log.info {
+            border-left-color: #2196F3;
+            background: #e3f2fd;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .credentials {
+            background: #f0f0f0;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background: #f5f5f5;
+            font-weight: bold;
+        }
+
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Delight API Verification Test</h1>
+
+        <!-- Configuration Section -->
+        <div class="test-section">
+            <h2>Configuration</h2>
+            <table>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Value</th>
+                </tr>
+                <tr>
+                    <td>AppID</td>
+                    <td><code>56A1A6C7-7DAC-4B48-8756-D53A77125F71</code></td>
+                </tr>
+                <tr>
+                    <td>AgentID</td>
+                    <td><code>2df75d5c-ed47-4515-a61a-1668e72e2322</code></td>
+                </tr>
+                <tr>
+                    <td>API URL</td>
+                    <td><code>https://api-56A1A6C7-7DAC-4B48-8756-D53A77125F71.app.delight.ai</code></td>
+                </tr>
+                <tr>
+                    <td>Master Token</td>
+                    <td><code>9b6c396505c62e6022c8c909b1bb05f1cf6b1fad</code></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Test 1: SDK Loading -->
+        <div class="test-section">
+            <h2><span class="step-number">1</span>Test SDK Loading<span class="status pending" id="status-1">PENDING</span></h2>
+            <p>Verify the Delight SDK loads from CDN</p>
+            <button onclick="testSDKLoading()">Test SDK Loading</button>
+            <div class="log" id="log-1"></div>
+        </div>
+
+        <!-- Test 2: Mock User Test -->
+        <div class="test-section">
+            <h2><span class="step-number">2</span>Test with Mock Student Data<span class="status pending" id="status-2">PENDING</span></h2>
+            <p>Initialize Delight with mock Canvas student data</p>
+            <button onclick="testWithMockStudent()">Test with Student Data</button>
+            <div class="log" id="log-2"></div>
+        </div>
+
+        <!-- Test 3: Test with Anonymous User -->
+        <div class="test-section">
+            <h2><span class="step-number">3</span>Test with Anonymous User<span class="status pending" id="status-3">PENDING</span></h2>
+            <p>Initialize Delight with anonymous session</p>
+            <button onclick="testWithAnonymous()">Test Anonymous Session</button>
+            <div class="log" id="log-3"></div>
+        </div>
+
+        <!-- Test 4: SDK Messenger Instance -->
+        <div class="test-section">
+            <h2><span class="step-number">4</span>Test SDK Messenger Methods<span class="status pending" id="status-4">PENDING</span></h2>
+            <p>Verify SDK provides required methods</p>
+            <button onclick="testMessengerMethods()">Test Messenger Methods</button>
+            <div class="log" id="log-4"></div>
+        </div>
+
+        <!-- Test Results Summary -->
+        <div class="test-section">
+            <h2>Test Summary</h2>
+            <div id="summary">
+                <p>Run tests to see results...</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Expose functions to global scope for button onclick handlers
+        window.testResults = {
+            sdkLoading: null,
+            mockStudent: null,
+            anonymous: null,
+            messengerMethods: null
+        };
+
+        window.testSDKLoading = testSDKLoading;
+        window.testWithMockStudent = testWithMockStudent;
+        window.testWithAnonymous = testWithAnonymous;
+        window.testMessengerMethods = testMessengerMethods;
+
+        const CONFIG = {
+            appId: '56A1A6C7-7DAC-4B48-8756-D53A77125F71',
+            agentId: '2df75d5c-ed47-4515-a61a-1668e72e2322',
+            apiUrl: 'https://api-56A1A6C7-7DAC-4B48-8756-D53A77125F71.app.delight.ai',
+            apiToken: '9b6c396505c62e6022c8c909b1bb05f1cf6b1fad'
+        };
+
+        const MOCK_STUDENT = {
+            canvas_id: '12345',
+            login_id: 'student@chamberlain.instructure.com',
+            student_id: '67890',
+            first_name: 'John',
+            last_name: 'Doe',
+            primary_email: 'john.doe@example.com'
+        };
+
+        let messengerInstance = null;
+
+        function log(testNum, message, type = 'info') {
+            const logElement = document.getElementById(`log-${testNum}`);
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${message}`;
+            logElement.innerHTML += `<div style="margin-bottom: 4px;">${entry}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[TEST ${testNum}] ${message}`);
+        }
+
+        function setStatus(testNum, status) {
+            const statusElement = document.getElementById(`status-${testNum}`);
+            statusElement.className = `status ${status.toLowerCase()}`;
+            statusElement.textContent = status.toUpperCase();
+        }
+
+        async function testSDKLoading() {
+            log(1, '🔄 Starting SDK Loading Test...');
+            setStatus(1, 'pending');
+
+            try {
+                log(1, 'Importing Delight SDK from CDN...');
+                const { loadMessenger } = await import('https://aiagent.delight.ai/orgs/default/index.js');
+                log(1, '✓ SDK module imported successfully');
+
+                log(1, 'Loading messenger instance...');
+                messengerInstance = await loadMessenger();
+                log(1, '✓ Messenger instance loaded');
+
+                log(1, 'Checking messenger methods...');
+                const methods = ['initialize', 'openChat', 'closeChat'];
+                let allMethodsExist = true;
+                methods.forEach(method => {
+                    if (typeof messengerInstance[method] === 'function') {
+                        log(1, `  ✓ Method available: ${method}`);
+                    } else {
+                        log(1, `  ✗ Method missing: ${method}`);
+                        allMethodsExist = false;
+                    }
+                });
+
+                window.testResults.sdkLoading = true;
+                setStatus(1, 'success');
+                log(1, '✅ SDK Loading Test PASSED');
+            } catch (error) {
+                window.testResults.sdkLoading = false;
+                setStatus(1, 'error');
+                log(1, `❌ SDK Loading Test FAILED: ${error.message}`);
+            }
+            updateSummary();
+        }
+
+        async function testWithMockStudent() {
+            log(2, '🔄 Starting Mock Student Test...');
+            setStatus(2, 'pending');
+
+            if (!messengerInstance) {
+                log(2, '⚠️ SDK not loaded. Loading SDK first...');
+                await testSDKLoading();
+                if (!messengerInstance) {
+                    setStatus(2, 'error');
+                    return;
+                }
+            }
+
+            try {
+                log(2, `Initializing with mock student: ${MOCK_STUDENT.login_id}`);
+
+                const initConfig = {
+                    appId: CONFIG.appId,
+                    aiAgentId: CONFIG.agentId,
+                    userSessionInfo: new messengerInstance.ManualSessionInfo({
+                        userId: MOCK_STUDENT.canvas_id,
+                        authToken: 'mock-token-' + Date.now()
+                    }),
+                    context: {
+                        student_id: MOCK_STUDENT.student_id,
+                        canvas_id: MOCK_STUDENT.canvas_id,
+                        login_id: MOCK_STUDENT.login_id,
+                        first_name: MOCK_STUDENT.first_name,
+                        last_name: MOCK_STUDENT.last_name,
+                        primary_email: MOCK_STUDENT.primary_email,
+                        platformId: 'canvas'
+                    }
+                };
+
+                log(2, 'SDK Config created successfully');
+                log(2, `  - AppID: ${initConfig.appId}`);
+                log(2, `  - AgentID: ${initConfig.aiAgentId}`);
+                log(2, `  - UserID: ${MOCK_STUDENT.canvas_id}`);
+                log(2, `  - PlatformID: ${initConfig.context.platformId}`);
+
+                await messengerInstance.initialize(initConfig);
+                log(2, '✓ Messenger initialized successfully');
+
+                window.testResults.mockStudent = true;
+                setStatus(2, 'success');
+                log(2, '✅ Mock Student Test PASSED');
+            } catch (error) {
+                window.testResults.mockStudent = false;
+                setStatus(2, 'error');
+                log(2, `❌ Mock Student Test FAILED: ${error.message}`);
+            }
+            updateSummary();
+        }
+
+        async function testWithAnonymous() {
+            log(3, '🔄 Starting Anonymous User Test...');
+            setStatus(3, 'pending');
+
+            if (!messengerInstance) {
+                log(3, '⚠️ SDK not loaded. Loading SDK first...');
+                await testSDKLoading();
+                if (!messengerInstance) {
+                    setStatus(3, 'error');
+                    return;
+                }
+            }
+
+            try {
+                log(3, 'Initializing with anonymous session...');
+
+                const initConfig = {
+                    appId: CONFIG.appId,
+                    aiAgentId: CONFIG.agentId,
+                    userSessionInfo: new messengerInstance.AnonymousSessionInfo(),
+                    context: {
+                        userType: 'anonymous',
+                        platformId: 'canvas'
+                    }
+                };
+
+                log(3, 'Anonymous config created');
+                await messengerInstance.initialize(initConfig);
+                log(3, '✓ Messenger initialized with anonymous session');
+
+                window.testResults.anonymous = true;
+                setStatus(3, 'success');
+                log(3, '✅ Anonymous User Test PASSED');
+            } catch (error) {
+                window.testResults.anonymous = false;
+                setStatus(3, 'error');
+                log(3, `❌ Anonymous User Test FAILED: ${error.message}`);
+            }
+            updateSummary();
+        }
+
+        async function testMessengerMethods() {
+            log(4, '🔄 Testing Messenger Methods...');
+            setStatus(4, 'pending');
+
+            if (!messengerInstance) {
+                log(4, '⚠️ SDK not loaded. Loading SDK first...');
+                await testSDKLoading();
+                if (!messengerInstance) {
+                    setStatus(4, 'error');
+                    return;
+                }
+            }
+
+            try {
+                const methods = [
+                    'initialize',
+                    'openChat',
+                    'closeChat',
+                    'sendMessage',
+                    'getSession'
+                ];
+
+                log(4, 'Checking available methods:');
+                let availableCount = 0;
+                methods.forEach(method => {
+                    if (typeof messengerInstance[method] === 'function') {
+                        log(4, `  ✓ ${method} (function)`);
+                        availableCount++;
+                    } else {
+                        const type = typeof messengerInstance[method];
+                        log(4, `  ✓ ${method} (${type})`);
+                    }
+                });
+
+                log(4, `Available methods: ${availableCount}/${methods.length}`);
+                window.testResults.messengerMethods = true;
+                setStatus(4, 'success');
+                log(4, '✅ Messenger Methods Test PASSED');
+            } catch (error) {
+                window.testResults.messengerMethods = false;
+                setStatus(4, 'error');
+                log(4, `❌ Messenger Methods Test FAILED: ${error.message}`);
+            }
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const results = window.testResults;
+            const passed = Object.values(results).filter(v => v === true).length;
+            const total = Object.keys(results).length;
+
+            let summary = `<h3>Results: ${passed}/${total} Tests Passed</h3>`;
+            summary += '<table><tr><th>Test</th><th>Status</th></tr>';
+
+            Object.entries(results).forEach(([test, result]) => {
+                const status = result === null ? '⏳ PENDING' : result ? '✅ PASSED' : '❌ FAILED';
+                const color = result === null ? '#999' : result ? '#4CAF50' : '#f44336';
+                summary += `<tr><td>${test}</td><td style="color: ${color}; font-weight: bold;">${status}</td></tr>`;
+            });
+
+            summary += '</table>';
+
+            if (passed === total && total > 0) {
+                summary += '<p style="color: #4CAF50; font-weight: bold; margin-top: 12px;">✅ All tests passed! API endpoint is working correctly.</p>';
+            } else if (passed > 0) {
+                summary += '<p style="color: #FF9800; font-weight: bold; margin-top: 12px;">⚠️ Some tests are still running or pending.</p>';
+            }
+
+            document.getElementById('summary').innerHTML = summary;
+        }
+
+        // Log initial state
+        console.log('Delight API Verification Test Ready');
+        console.log('Configuration:', CONFIG);
+        console.log('Mock Student:', MOCK_STUDENT);
+    </script>
+</body>
+</html>
