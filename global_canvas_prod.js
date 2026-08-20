@@ -1,3 +1,54 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+// CANVAS LMS - DUAL MESSENGER INTEGRATION SCRIPT
+// global_canvas_prod.js
+//
+// PURPOSE:
+// This script integrates TWO conversational AI messengers into Canvas LMS:
+// 1. Avaamo 1.0 (Legacy - for backward compatibility and existing workflows)
+// 2. Delight AI 2.0 (New - AI-powered student support, Phase 1 pilot)
+//
+// STRUCTURE OF THIS FILE:
+// ├─ Lines 1-73: Environment-specific configurations (New Relic, Analytics, etc.)
+// ├─ Lines 74-410: Canvas custom scripts and utilities (faculty preview, etc.)
+// ├─ Lines 427-652: AVAAMO 1.0 INTEGRATION
+// │  └─ AvaamoChatBot class, JWT token handling, live chat features
+// ├─ Lines 654-977: DELIGHT AI 2.0 INTEGRATION (WITH DETAILED COMMENTS)
+// │  └─ DelightAgentUI class, session management, SDK initialization
+// └─ Lines 980-1010: Dual messenger initialization + ReadSpeaker setup
+//
+// KEY INTEGRATION POINTS:
+//
+// DELIGHT AI 2.0 STARTS AT: Line 654 (class DelightAgentUI {)
+// Look for: "===== DELIGHT AI 2.0 INTEGRATION STARTS HERE ====="
+//
+// AVAAMO 1.0 STARTS AT: Line 437 (var AvaamoChatBot = ...)
+// Look for: "===== AVAAMO 1.0 INTEGRATION ====="
+//
+// INITIALIZATION HAPPENS AT: Line 980
+// Look for: "===== DUAL MESSENGER INITIALIZATION ====="
+//
+// IMPORTANT FOR CANVAS TEAM:
+// This script assumes Canvas backend implements TWO required endpoints:
+// 1. POST /api/v1/avaamo/session (for Avaamo JWT token generation)
+// 2. POST /api/v1/delight/session (for Delight session creation)
+//
+// Without these endpoints, the messengers will fail gracefully with console errors.
+//
+// DEBUGGING:
+// - Open browser console: F12 > Console tab
+// - Search for "Avaamo" or "Delight" logs
+// - All errors prefixed with messenger name for easy identification
+//
+// PHASE 1 ROLLOUT PLAN:
+// - Both messengers active for testing
+// - Monitor console logs for errors
+// - Verify both launchers appear in Canvas header
+// - Share feedback with Delight team
+// - Phase 2: Remove Avaamo after Delight proves reliable
+//
+////////////////////////////////////////////////////////////////////////////////
+
 // Load Environment-specific JavaScript Files
 var refDomain = window.location.hostname;
 switch(refDomain) {
@@ -389,7 +440,7 @@ var CanvasDetails = {};
     }
 
 })();
-
+}
 
 function onElementRendered(selector, cb, _attempts) {
     var el = $(selector);
@@ -424,14 +475,312 @@ function onVarAvailable(variable, cb, _attempts) {
     }, 250);
 }
 
-// ===== DELIGHT AI INTEGRATION =====
-// Replaces deprecated Avaamo 1.0 with Delight AI 2.0 conversational agent
-// Security: All Delight API credentials are kept on Canvas backend (never exposed in client code)
+// ===== DUAL MESSENGER INTEGRATION =====
+// Phase 1: Both Avaamo 1.0 and Delight AI 2.0 running simultaneously
+// Avaamo 1.0 continues for existing workflows; Delight AI 2.0 available as new option
+// Security: All API credentials kept on Canvas backend (never exposed in client code)
 
 var DelightConfig = {
   appId: '56A1A6C7-7DAC-4B48-8756-D53A77125F71',
   agentId: '2df75d5c-ed47-4515-a61a-1668e72e2322'
 };
+
+// ===== AVAAMO 1.0 INTEGRATION =====
+var AvaamoChatBot = function(t) {
+  function o(t, o) {
+    var n = document.createElement("script");
+    n.setAttribute("src", t),
+      n.setAttribute("id", "avm-web-channel"),
+      (n.onload = o),
+      document.body.appendChild(n);
+  }
+  return (
+    (this.options = t || {}),
+    (this.load = function(t) {
+      o(this.options.url, function() {
+        window.Avaamo.addFrame(),
+          t && "function" == typeof t && t(window.Avaamo);
+      });
+    }),
+    this
+  );
+};
+
+function getAvaamoJWTURL(isStudent) {
+  return isStudent ? "https://bis-api-dot-app-studentportal-prod.uk.r.appspot.com/ava-student-prod/token" :
+  "https://bis-api-dot-app-studentportal-prod.uk.r.appspot.com/ava-itsm-prod/token";
+}
+
+function getAvaamoWebChannelURL(isStudent) {
+  return isStudent ? "https://c0.avaamo.com/web_channels/3663bef4-d5fb-4c84-bab8-86013b2eb0df?user_info=" :
+  "https://c0.avaamo.com/web_channels/169a69e1-58d5-47ef-8a67-f9269620fb49?user_info=";
+}
+
+class AvaamoAvaUI {
+  constructor() {
+    this.options = {
+      credentials: "same-origin",
+      headers: {
+        accept: "application/json"
+      }
+    };
+
+    this.fetchProfile();
+  }
+
+  fetchProfile() {
+    fetch("/api/v1/users/self/profile", this.options)
+      .then(this.checkStatus)
+      .then(this.parseJSON)
+      .then(this.updateUser)
+      .then(this.includeAvaamoAva)
+      .then(this.buildAvaamoLauncher)
+      .catch(function(error) {
+        console.log("Unable to lookup user information ", error);
+      });
+  }
+
+  async parseJSON(response) {
+    const regex = /"id":(.*),"name"/;
+    const text = await response.text();
+    let jsonObj = JSON.parse(text);
+    const found = text.match(regex);
+    if (found.length > 1) {
+      jsonObj.id = found[1];
+    }
+    return jsonObj;
+  }
+
+  checkStatus(response) {
+    if (response.status >= 200 && response.status < 300) {
+      return response;
+    } else {
+      var error = new Error(response.statusText);
+      error.response = response;
+      throw error;
+    }
+  }
+
+  async updateUser(data) {
+    let names = data.name.split(" ");
+    let first_name = names[0] || "";
+    let last_name = names[names.length - 1] || "";
+    let user = {
+      canvas_id: data.id,
+      login_id: data.login_id,
+      name: data.name,
+      primary_email: data.primary_email,
+      avatar: data.avatar_url,
+      showAva: false,
+      first_name: first_name,
+      last_name: last_name
+    };
+
+    const url = `https://apigateway.adtalem.com/canvas/1.0/accounts/1/users?search_term=${user.login_id}&enrollment_type=student`;
+    console.log(url);
+    let res = await fetch(url, {
+      headers: {
+        "Ocp-Apim-Subscription-Key": "67fcffd70f0e4c2d909ba6914ae2150f",
+      }
+    }).catch((error) => {
+      console.log('Failed to call API.')
+      console.log(error);
+    });
+    const jsonObj = await res.json();
+    console.log('User account:');
+    console.log(jsonObj);
+    user.isStudent = jsonObj.length === 1;
+    console.log(user);
+    return user;
+  }
+
+  buildAvaamoLauncher() {
+    // Build launch button
+    let iconDiv = document.createElement("div");
+    iconDiv.innerHTML =
+      '<img style="border-radius: 0%;" src="https://c0avaamo.s3-us-west-2.amazonaws.com/dashboard/bots/avatars/000/095/273/medium/Ava_2022_R02_circle.png?1730143801" class="sc-open-icon" width="30" height="30"/>';
+    iconDiv.setAttribute("class", "menu-item-icon-container");
+
+    let textDiv = document.createElement("div");
+    textDiv.innerHTML = "Ava";
+    textDiv.setAttribute("class", "menu-item__text");
+
+    let g = document.createElement("a");
+    g.setAttribute("id", "avaamoLauncher");
+    g.setAttribute("href", "javascript:void(0)");
+    g.setAttribute("class", "ic-app-header__menu-list-link");
+    g.style.cssText = "background-color:rgba(0,0,0,0);outline:none;";
+    g.appendChild(iconDiv);
+    g.appendChild(textDiv);
+
+    var newLi = document.createElement("li");
+    newLi.setAttribute("class", "menu-item ic-app-header__menu-list-item");
+    newLi.appendChild(g);
+
+    let parent = document.querySelector(".ic-app-header__menu-list");
+    if (parent) {
+      parent.insertBefore(
+        newLi,
+        document.querySelector("#global_nav_help_link").parentElement
+      );
+    }
+
+    document
+      .querySelector("#avaamoLauncher")
+      .addEventListener("click", function() {
+        window.Avaamo.openChatBox();
+      });
+  }
+
+  includeAvaamoAva(user) {
+    var myHeaders = new Headers();
+    myHeaders.append("Content-Type", "application/json");
+
+    var raw = JSON.stringify({
+      uuid: user.login_id,
+      email: user.primary_email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      dnumber: user.login_id,
+      canvas_id: user.canvas_id
+    });
+
+    var requestOptions = {
+      method: "POST",
+      headers: myHeaders,
+      mode: "cors",
+      body: raw,
+      redirect: "follow"
+    };
+
+    const JWT_URL = getAvaamoJWTURL(user.isStudent);
+
+    fetch(JWT_URL, requestOptions)
+      .then(response => response.text())
+      .then(result => {
+        let avaamoToken = JSON.parse(result).result.token;
+        var avaamoUrl = getAvaamoWebChannelURL(user.isStudent) + avaamoToken;
+        console.log("avaamoUrl:", avaamoUrl);
+        var chatBox = new AvaamoChatBot({
+          url: avaamoUrl
+        });
+        chatBox.load(function (avaamo) {
+          avaamo.onChatIframeLoad = function () {
+            var popup = document.querySelector('#avaamo__popup');
+            var botClose = document.querySelector('.avaamo_popup__close');
+            var btn = document.createElement("button");
+            btn.innerHTML = "End Live Chat";
+            btn.id = "live-agent-end";
+            btn.classList.add("end-live-chat");
+            btn.classList.add("hide");
+            popup.appendChild(btn);
+            btn.addEventListener('click', function () {
+              window.Avaamo.sendMessage("End Live Chat", "#end agent")
+            });
+          }
+          avaamo.onBotMessage = function (message) {
+            if (message.hasOwnProperty('content')) {
+              if (message.content.startsWith('A live agent will be right with you.')) {
+                var btn = document.querySelector('#live-agent-end');
+                btn.classList.remove("hide");
+              } else if (message.content.startsWith('Live chat has ended')) {
+                var btn = document.querySelector('#live-agent-end');
+                btn.classList.add("hide");
+              }
+              else if (message.content === 'You have already exited live agent conversation') {
+                var btn = document.querySelector('#live-agent-end');
+                btn.classList.add("hide");
+              }
+            }
+          }
+        });
+      })
+      .catch(error => console.log("error", error));
+
+    return user;
+  }
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// ===== DELIGHT AI 2.0 INTEGRATION STARTS HERE =====
+////////////////////////////////////////////////////////////////////////////////
+//
+// PURPOSE:
+// - Replaces/supplements Avaamo 1.0 with Delight AI 2.0 conversational agent
+// - Phase 1: Both messengers run simultaneously (Avaamo 1.0 + Delight AI 2.0)
+// - Provides AI-powered student support with Canvas user context
+//
+// SECURITY NOTES:
+// - All Delight API credentials are NEVER exposed in client code
+// - Credentials stored securely on Canvas backend
+// - Client only receives session tokens (not API keys)
+// - Session creation happens via Canvas backend API
+//
+// INITIALIZATION FLOW:
+// 1. Fetch Canvas user profile (Canvas API: /api/v1/users/self/profile)
+// 2. Extract student ID, name, email, Canvas ID
+// 3. Create Delight session on Canvas backend (/api/v1/delight/session)
+// 4. Receive session_token and user_id from backend
+// 5. Load Delight SDK from CDN
+// 6. Initialize SDK with session token and user context
+// 7. Build launcher UI button in Canvas header
+// 8. Handle errors gracefully with console logging
+//
+// CONFIGURATION:
+// - appId: Delight application identifier
+// - agentId: Delight AI agent/bot identifier
+//
+// LAUNCHER UI:
+// - Icon: Purple circle with checkmark SVG
+// - Label: "AI Assistant"
+// - Position: Canvas header navigation (before Help link)
+// - Click action: Opens Delight chat interface
+//
+// CANVAS BACKEND REQUIREMENTS:
+// The Canvas backend MUST implement: POST /api/v1/delight/session
+// Request Body:
+// {
+//   "canvas_id": "12345",
+//   "login_id": "student@example.com",
+//   "student_id": "67890",
+//   "first_name": "John",
+//   "last_name": "Doe",
+//   "primary_email": "john.doe@example.com"
+// }
+// Response (Success):
+// {
+//   "success": true,
+//   "session_token": "eyJ...",
+//   "user_id": "u_abc123",
+//   "message": "Session created"
+// }
+//
+// ANALYTICS & CONTEXT DATA SENT TO DELIGHT:
+// {
+//   "student_id": "extracted from login_id",
+//   "canvas_id": "Canvas user ID",
+//   "login_id": "Canvas login email",
+//   "first_name": "From Canvas profile",
+//   "last_name": "From Canvas profile",
+//   "primary_email": "Canvas email",
+//   "platformId": "canvas"  // Identifies this as Canvas platform
+// }
+//
+// BROWSER CONSOLE LOGS (For Debugging):
+// - "Canvas user profile fetched for Delight initialization"
+// - "Creating Delight user session via Canvas backend"
+// - "Delight session created successfully"
+// - "Delight SDK script loaded"
+// - "Delight SDK initialized successfully"
+// - "Delight launcher created successfully"
+//
+// ERROR HANDLING:
+// - All errors logged to console with "Delight" prefix
+// - Graceful failures (won't break Canvas)
+// - Check browser console (F12) for troubleshooting
+//
+////////////////////////////////////////////////////////////////////////////////
 
 class DelightAgentUI {
   constructor() {
@@ -444,6 +793,8 @@ class DelightAgentUI {
     this.fetchProfile();
   }
 
+  // STEP 1: Fetch user profile from Canvas
+  // Initiates the initialization chain by getting Canvas user data
   fetchProfile() {
     fetch("/api/v1/users/self/profile", this.options)
       .then(this.checkStatus)
@@ -458,6 +809,7 @@ class DelightAgentUI {
       });
   }
 
+  // Validate HTTP response status (200-299 = success)
   checkStatus(response) {
     if (response.status >= 200 && response.status < 300) {
       return response;
@@ -468,6 +820,7 @@ class DelightAgentUI {
     }
   }
 
+  // Parse JSON response and extract Canvas user ID
   async parseJSON(response) {
     const regex = /"id":(.*),"name"/;
     const text = await response.text();
@@ -479,6 +832,8 @@ class DelightAgentUI {
     return jsonObj;
   }
 
+  // STEP 2: Extract and prepare user data from Canvas profile
+  // Organizes Canvas profile data into format needed for Delight
   async updateUser(data) {
     let names = data.name.split(" ");
     let first_name = names[0] || "";
@@ -501,10 +856,11 @@ class DelightAgentUI {
     return user;
   }
 
+  // STEP 3: Create Delight session via Canvas backend
+  // IMPORTANT: Backend endpoint (/api/v1/delight/session) must be implemented by Canvas team
+  // Canvas backend handles secure Delight API authentication (client never sees API keys)
   async createDelightSession(user) {
     try {
-      // Call Canvas backend endpoint (same pattern as Avaamo)
-      // Canvas backend securely handles Delight API authentication with stored credentials
       var raw = JSON.stringify({
         canvas_id: user.canvas_id,
         login_id: user.login_id,
@@ -542,9 +898,13 @@ class DelightAgentUI {
     }
   }
 
+  // STEP 4: Load Delight SDK from CDN
+  // Downloads and injects Delight JavaScript SDK into page
+  // Checks if already loaded to avoid duplicate loading
   async loadDelightSDK(user) {
     return new Promise((resolve, reject) => {
       if (window.DelightAI) {
+        console.log('Delight SDK already loaded, skipping reload');
         resolve(user);
         return;
       }
@@ -566,9 +926,12 @@ class DelightAgentUI {
     });
   }
 
+  // STEP 5: Initialize Delight SDK with session token and user context
+  // IMPORTANT: This sends user data (student_id, email, name, etc.) to Delight backend
+  // This data enables personalization and analytics within Delight platform
   async initDelightSDK(user) {
     try {
-      // Delight context object: Canvas-specific metadata sent to Delight backend for analytics and personalization
+      // Context object: Canvas-specific metadata sent to Delight for analytics and personalization
       const context = {
         student_id: user.student_id,
         canvas_id: user.canvas_id,
@@ -576,10 +939,12 @@ class DelightAgentUI {
         first_name: user.first_name,
         last_name: user.last_name,
         primary_email: user.primary_email,
-        platformId: 'canvas'
+        platformId: 'canvas'  // Identifies this session as coming from Canvas
       };
 
       // Initialize Delight SDK with session token and context
+      // sessionToken validates the user with Delight backend
+      // context enables personalization and platform-specific filtering
       if (window.DelightAI && typeof window.DelightAI.init === 'function') {
         await window.DelightAI.init({
           appId: DelightConfig.appId,
@@ -601,20 +966,23 @@ class DelightAgentUI {
     }
   }
 
+  // STEP 6: Build and inject launcher UI button into Canvas header
+  // Creates the "AI Assistant" button that appears in Canvas navigation
+  // Positioned before Help link to maintain UI consistency
   buildDelightLauncher(user) {
     try {
-      // Create launcher icon container
+      // Create launcher icon container with SVG checkmark icon (purple circle)
       let iconDiv = document.createElement("div");
       iconDiv.innerHTML =
         '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;"><circle cx="12" cy="12" r="10" fill="#667eea" stroke="currentColor" stroke-width="1"/><path d="M9 12L11 14L15 10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       iconDiv.setAttribute("class", "menu-item-icon-container");
 
-      // Create launcher text
+      // Create launcher text label
       let textDiv = document.createElement("div");
       textDiv.innerHTML = "AI Assistant";
       textDiv.setAttribute("class", "menu-item__text");
 
-      // Create launcher link
+      // Create launcher link element
       let g = document.createElement("a");
       g.setAttribute("id", "delightLauncher");
       g.setAttribute("href", "javascript:void(0)");
@@ -623,12 +991,12 @@ class DelightAgentUI {
       g.appendChild(iconDiv);
       g.appendChild(textDiv);
 
-      // Create launcher list item
+      // Create launcher list item container
       var newLi = document.createElement("li");
       newLi.setAttribute("class", "menu-item ic-app-header__menu-list-item");
       newLi.appendChild(g);
 
-      // Insert launcher before help link (maintains original position)
+      // Insert launcher into Canvas header menu (before Help link)
       let parent = document.querySelector(".ic-app-header__menu-list");
       if (parent) {
         let helpLink = document.querySelector("#global_nav_help_link");
@@ -639,7 +1007,7 @@ class DelightAgentUI {
         }
       }
 
-      // Add click handler to open Delight chat
+      // Add click event handler to open Delight chat interface
       let launcher = document.querySelector("#delightLauncher");
       if (launcher) {
         launcher.addEventListener("click", function(e) {
@@ -659,10 +1027,46 @@ class DelightAgentUI {
   }
 }
 
-// Initialize Delight AI on page load (replaces deprecated Avaamo integration)
+////////////////////////////////////////////////////////////////////////////////
+// ===== DUAL MESSENGER INITIALIZATION =====
+// Runs when Canvas page loads (DOM ready)
+// Both Avaamo 1.0 and Delight AI 2.0 start simultaneously
+//
+// IMPORTANT NOTES:
+// 1. Each messenger initializes independently
+// 2. Failures in one don't affect the other
+// 3. Both launchers appear in Canvas header (separate icons)
+// 4. Check browser console (F12) for initialization logs
+// 5. Canvas backend must support BOTH endpoints:
+//    - /api/v1/avaamo/session (for Avaamo 1.0)
+//    - /api/v1/delight/session (for Delight AI 2.0)
+//
+// TO DEBUG:
+// - Open browser console: F12 > Console tab
+// - Look for logs starting with "Avaamo" or "Delight"
+// - Check for error messages
+// - Verify both endpoints are responding
+////////////////////////////////////////////////////////////////////////////////
+
 (function() {
+  // Initialize Avaamo 1.0 (existing messenger - for backward compatibility)
+  if (!document.querySelector("#avaamoLauncher")) {
+    try {
+      new AvaamoAvaUI();
+      console.log('Avaamo 1.0 initialization started');
+    } catch (error) {
+      console.error('Avaamo 1.0 initialization failed:', error);
+    }
+  }
+
+  // Initialize Delight AI 2.0 (new AI-powered messenger - Phase 1 pilot)
   if (!document.querySelector("#delightLauncher")) {
-    new DelightAgentUI();
+    try {
+      new DelightAgentUI();
+      console.log('Delight AI 2.0 initialization started');
+    } catch (error) {
+      console.error('Delight AI 2.0 initialization failed:', error);
+    }
   }
 })();
 
