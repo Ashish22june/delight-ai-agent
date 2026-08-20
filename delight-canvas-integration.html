@@ -340,7 +340,7 @@
                         userType: 'student',
                         canvasId: canvasStudentId,
                         platformId: 'canvas',
-                        features: Object.keys(FEATURE_CONFIG.student).filter(k => FEATURE_CONFIG.student[k])
+                        features: Object.keys(FEATURE_CONFIG.student).filter(k => FEATURE_CONFIG.student[k]).join(',')
                     };
                 } else {
                     // Anonymous session
@@ -350,7 +350,7 @@
                     initConfig.context = {
                         userType: 'anonymous',
                         platformId: 'canvas',
-                        features: Object.keys(FEATURE_CONFIG.anonymous).filter(k => FEATURE_CONFIG.anonymous[k])
+                        features: Object.keys(FEATURE_CONFIG.anonymous).filter(k => FEATURE_CONFIG.anonymous[k]).join(',')
                     };
                 }
 
